@@ -311,6 +311,77 @@ def deleteSnapshot(vmId, String snapName) {
 }
 
 /**
+ * Check if a snapshot exists for a VM
+ * @param vmId VM ID
+ * @param snapName Snapshot name
+ * @return true if snapshot exists, false otherwise
+ */
+def snapshotExists(vmId, String snapName) {
+  return withCredentials([string(credentialsId: getCredentialId(), variable: 'PROXMOX_TOKEN')]) {
+    def result = sh(
+      script: """curl -s -k -H "Authorization: \${PROXMOX_TOKEN}" ${getBaseUrl()}/qemu/${vmId}/snapshot/${snapName}/config""",
+      returnStatus: true
+    )
+    return result == 0
+  }
+}
+
+/**
+ * Safely restore a VM to a snapshot with error handling
+ * Checks if snapshot exists before attempting restore
+ * Used in cleanup scenarios where snapshots may not exist
+ * @param vmId VM ID to restore
+ * @param snapName Snapshot name
+ * @param throwOnError If true, re-throws exceptions; if false, logs and continues (default: false)
+ * @return true if successful, false if failed (when throwOnError is false)
+ */
+def safeRestoreSnapshot(vmId, String snapName, Boolean throwOnError = false) {
+  try {
+    if (!snapshotExists(vmId, snapName)) {
+      echo "⚠️ VM ${vmId}: Snapshot '${snapName}' does not exist (may have been deleted already)"
+      return false
+    }
+
+    restoreSnapshot(vmId, snapName)
+    return true
+  } catch (Exception e) {
+    echo "⚠️ Failed to restore VM ${vmId}: ${e.message}"
+    if (throwOnError) {
+      throw e
+    }
+    echo "   Continuing with cleanup process..."
+    return false
+  }
+}
+
+/**
+ * Safely delete a snapshot with error handling
+ * Checks if snapshot exists before attempting deletion
+ * Used in cleanup scenarios where snapshots may not exist
+ * @param vmId VM ID
+ * @param snapName Snapshot name
+ * @param throwOnError If true, re-throws exceptions (default: true for critical cleanup)
+ * @return true if successful, false if failed (when throwOnError is false)
+ */
+def safeDeleteSnapshot(vmId, String snapName, Boolean throwOnError = true) {
+  try {
+    if (!snapshotExists(vmId, snapName)) {
+      echo "✅ VM ${vmId}: Snapshot '${snapName}' already deleted or never existed"
+      return true
+    }
+
+    deleteSnapshot(vmId, snapName)
+    return true
+  } catch (Exception e) {
+    echo "❌ CRITICAL: Failed to delete snapshot from VM ${vmId}: ${e.message}"
+    if (throwOnError) {
+      throw e
+    }
+    return false
+  }
+}
+
+/**
  * List all snapshots for a VM
  * @param vmId VM ID
  * @return API response with snapshot list

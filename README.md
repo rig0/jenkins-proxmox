@@ -276,6 +276,105 @@ def snapshots = proxmoxLib.listSnapshots('100')
 echo snapshots
 ```
 
+#### `snapshotExists(vmId, snapName)`
+Check if a snapshot exists for a VM.
+
+**Parameters:**
+- `vmId` (String): VM ID
+- `snapName` (String): Snapshot name
+
+**Returns:** Boolean (true if exists, false otherwise)
+
+**Example:**
+```groovy
+if (proxmoxLib.snapshotExists('100', 'backup-snapshot')) {
+  echo "Snapshot exists"
+} else {
+  echo "Snapshot not found"
+}
+```
+
+#### `safeRestoreSnapshot(vmId, snapName, throwOnError = false)`
+Safely restore a VM to a snapshot with error handling. Checks if snapshot exists before attempting restore. Designed for cleanup scenarios where snapshots may not exist.
+
+**Parameters:**
+- `vmId` (String): VM ID to restore
+- `snapName` (String): Snapshot name
+- `throwOnError` (Boolean, optional): If true, re-throws exceptions; if false, logs and continues, default: false
+
+**Returns:** Boolean (true if successful, false if failed when throwOnError is false)
+
+**Example:**
+```groovy
+// Basic usage - logs errors but continues
+proxmoxLib.safeRestoreSnapshot('100', 'backup-snapshot')
+
+// Check result
+def success = proxmoxLib.safeRestoreSnapshot('100', 'backup-snapshot')
+if (!success) {
+  echo "Restore failed or snapshot not found"
+}
+
+// Throw on error for critical operations
+proxmoxLib.safeRestoreSnapshot('100', 'backup-snapshot', true)
+```
+
+**Use Case:**
+Perfect for `post.always` blocks where you want to restore snapshots even if they might not exist:
+```groovy
+post {
+  always {
+    script {
+      // Safely restore even if snapshot creation failed
+      proxmoxLib.safeRestoreSnapshot('100', env.SNAPSHOT_NAME)
+    }
+  }
+}
+```
+
+#### `safeDeleteSnapshot(vmId, snapName, throwOnError = true)`
+Safely delete a snapshot with error handling. Checks if snapshot exists before attempting deletion. Designed for cleanup scenarios where snapshots may not exist.
+
+**Parameters:**
+- `vmId` (String): VM ID
+- `snapName` (String): Snapshot name
+- `throwOnError` (Boolean, optional): If true, re-throws exceptions (default: true for critical cleanup); if false, logs and continues
+
+**Returns:** Boolean (true if successful, false if failed when throwOnError is false)
+
+**Example:**
+```groovy
+// Critical cleanup - throws on error (default)
+proxmoxLib.safeDeleteSnapshot('100', 'backup-snapshot')
+
+// Silent cleanup - logs but doesn't fail
+proxmoxLib.safeDeleteSnapshot('100', 'backup-snapshot', false)
+
+// Check result
+def deleted = proxmoxLib.safeDeleteSnapshot('100', 'backup-snapshot', false)
+if (!deleted) {
+  echo "Snapshot deletion failed or snapshot not found"
+}
+```
+
+**Use Case:**
+Perfect for `post.always` blocks to ensure snapshots are cleaned up:
+```groovy
+post {
+  always {
+    script {
+      // Critical: Always try to delete snapshots
+      try {
+        proxmoxLib.safeDeleteSnapshot('100', env.SNAPSHOT_NAME)
+      } catch (Exception e) {
+        echo "⚠️ Manual cleanup may be required"
+        currentBuild.result = 'UNSTABLE'
+      }
+    }
+  }
+}
+```
+
 ### Host Management Functions
 
 #### `shutdownHost(delay = 0)`
