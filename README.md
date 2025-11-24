@@ -23,7 +23,7 @@ A Jenkins shared library for interfacing with the Proxmox VE API. This library p
    - **Default version**: `main` (or your preferred branch)
    - **Retrieval method**: Modern SCM
    - **Source Code Management**: Git
-   - **Project Repository**: URL to this repository
+   - **Project Repository**: https://github.com/rig0/jenkins-proxmox
 
 ### Method 2: Direct Repository Reference
 
