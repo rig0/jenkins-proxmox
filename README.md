@@ -38,7 +38,7 @@
    - **Default version**: `main` (or your preferred branch)
    - **Retrieval method**: Modern SCM
    - **Source Code Management**: Git
-   - **Project Repository**: https://github.com/rig0/jenkins-proxmox
+   - **Project Repository**: `https://github.com/rig0/jenkins-proxmox`
 
 ### Method 2: Direct Repository Reference
 
@@ -690,14 +690,3 @@ If `verifySnapshotReady()` fails:
 1. Increase `retryAttempts` parameter
 2. Check VM disk performance (snapshots require disk I/O)
 3. Verify sufficient storage space on Proxmox
-
-## License
-
-MIT License - See LICENSE file for details
-
-## Support
-
-For issues and questions:
-- Check existing pipeline logs for error messages
-- Verify Proxmox API documentation at https://pve.proxmox.com/pve-docs/api-viewer/
-- Review Jenkins shared library documentation
